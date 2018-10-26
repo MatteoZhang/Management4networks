@@ -1,0 +1,9 @@
+the model is a queue
+but the methodology is the FES
+and it's a fifo method
+infinite queue but FES only see two of the event 
+one is the arrival and an other is departure
+FES is a priority queue modeled as a tree
+highest priority on the top of the tree
+if we get the first element then we sort again
+use an iterative algorithm for avg
