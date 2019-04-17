@@ -5,6 +5,7 @@ import networkx as nx
 DG = nx.DiGraph()
 # Task 5
 data = open("names.txt", "r")
+
 for line in data:
     word = line.split()
     edge = (word[1], word[2])
@@ -15,16 +16,15 @@ max_DG = max(nx.strongly_connected_components(DG), key=len)
 print(DG.number_of_nodes())
 print(DG.number_of_edges())
 print(n_strongly_connected)
-print(max_DG)
+# print(max_DG)
 
-MDG = nx.DiGraph()
-MDG.add_edges_from(max_DG)
-diameter = nx.diameter(MDG)
-radius = nx.radius(MDG)
-center = nx.center(MDG)
+Biggest = DG.subgraph(max_DG)
+# print(Biggest.nodes())
+diameter = nx.diameter(Biggest)
+radius = nx.radius(Biggest)
+centre = nx.center(Biggest)
 print(diameter)
 print(radius)
-print(center)
-
+print(centre)
 
 data.close()
