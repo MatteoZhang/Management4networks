@@ -6,10 +6,13 @@ DG = nx.DiGraph()
 # Task 5
 data = open("names.txt", "r")
 
+i = 0
 for line in data:
-    word = line.split()
-    edge = (word[1], word[2])
-    DG.add_edge(*edge)
+    if i < 2000:
+        word = line.split()
+        edge = (word[1], word[2])
+        DG.add_edge(*edge)
+    i += 1
 
 n_strongly_connected = nx.number_strongly_connected_components(DG)
 max_DG = max(nx.strongly_connected_components(DG), key=len)
