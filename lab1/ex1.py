@@ -23,11 +23,23 @@ print("tot nodes: ", n_nodes)
 
 # Task 2.1
 # CCDF
-# degree_sequence = sorted([d for n, d in G.degree()])
-# plt.loglog(degree_sequence, marker='o')
-# plt.title("CCDF")
-# plt.xlabel("degree")
-# plt.ylabel("profiles")
+#CCDF:
+degree_sequence = sorted([d for n, d in G.degree()], reverse=True)
+user_degree = {}
+for i in degree_sequence:
+    if i not in user_degree.keys():
+        user_degree[i] = 1
+    else:
+        user_degree[i] += 1
+a = sorted(user_degree.items())
+x, y = zip(*a)
+plt.loglog(x, y, '.')
+plt.title("Degree Distribution")
+plt.ylabel("Number of profiles")
+plt.xlabel("Degree")
+
+plt.show()
+#End CCDF
 
 # Task 2.2
 # number of degree of each node / by number of node
@@ -42,7 +54,7 @@ print("avg deg nodes: ", average)
 
 # Task 4
 giant = max(nx.connected_components(G))
-print("size of giant component", len(giant))
+print("size of giant component: ", len(giant))
 
 plt.show()
 data.close()
