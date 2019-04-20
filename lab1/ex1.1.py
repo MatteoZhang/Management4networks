@@ -25,6 +25,7 @@ max_W_DG = max(nx.weakly_connected_components(DG), key=len)
 
 Biggest = DG.subgraph(max_DG)
 Biggest_W = DG.subgraph(max_W_DG)
+Biggest_W = Biggest_W.to_undirected()
 
 # print(Biggest.nodes())
 diameter = nx.diameter(Biggest)
