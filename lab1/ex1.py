@@ -7,10 +7,12 @@ G = nx.Graph()
 i = 0
 influencer = []
 for line in data:
+    i += 1
     word = line.split()
     edge = (word[1], word[2])
     G.add_edge(*edge)
 
+print("total number of entries: ", i)
 influencer = list(G.nodes)
 plt.plot()
 # nx.draw(G, with_labels=True)
@@ -23,7 +25,7 @@ print("tot nodes: ", n_nodes)
 
 # Task 2.1
 # CCDF
-#CCDF:
+# CCDF:
 degree_sequence = sorted([d for n, d in G.degree()], reverse=True)
 user_degree = {}
 for i in degree_sequence:
@@ -39,7 +41,7 @@ plt.ylabel("Number of profiles")
 plt.xlabel("Degree")
 
 plt.show()
-#End CCDF
+# End CCDF
 
 # Task 2.2
 # number of degree of each node / by number of node
@@ -58,7 +60,7 @@ print("size of giant component: ", len(giant))
 
 plt.show()
 data.close()
-# put ccdf vs random graph table
+# put CCDF vs random graph table
 
 
 
