@@ -1,0 +1,3 @@
+nodes 218950 same as ex1
+edges 481186
+n strong 205723

@@ -36,6 +36,8 @@ for i in degree_sequence:
 a = sorted(user_degree.items())
 x, y = zip(*a)
 plt.loglog(x, y, '.')
+plt.grid(which='minor')
+plt.grid(which='major')
 plt.title("Degree Distribution")
 plt.ylabel("Number of profiles")
 plt.xlabel("Degree")
@@ -51,8 +53,8 @@ print("avg deg nodes: ", average)
 
 # Task 3
 # clustering coefficient default trials = 1000
-# avg_cluster = nx.average_clustering(G)
-# print("avg clustering coefficient (%) : ", avg_cluster*100)
+avg_cluster = nx.average_clustering(G)
+print("avg clustering coefficient : ", avg_cluster)
 
 # Task 4
 giant = max(nx.connected_components(G))
