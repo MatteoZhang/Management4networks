@@ -30,9 +30,9 @@ print("tot nodes: ", n_nodes)
 list_of_active = []
 dictionary_of_active = {}
 
-INITIAL_SANE = 9999900  # choose from 0 to 100
+INITIAL_SANE = 9999000  # choose from 0 to 100
 NEIGHBOURS = 0.9  # choose from 0 to 1 if % of neighours are infected then also the node
-RESISTANCE = 50
+RESISTANCE = 10
 
 for i in list(G.nodes):
     x = random.randint(0, 10000000)
@@ -64,7 +64,7 @@ for i in range(20):
                 if G_old.nodes[k]['active'] == 1:
                     infection_rate += 1
             infetion_rate = infection_rate/len(list(G_old.adj[j]))
-            if infection_rate > NEIGHBOURS and RESISTANCE > r:
+            if infection_rate > NEIGHBOURS and RESISTANCE < r:
                 G.nodes[j]['active'] = 1
     G_old = copy.deepcopy(G)
     not_inf = 0
