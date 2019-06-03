@@ -22,10 +22,15 @@ print("tot strongly connected components: ", n_strongly_connected)
 # print(max_DG)
 
 max_W_DG = max(nx.weakly_connected_components(DG), key=len)
-
+print("check point 1")
 Biggest = DG.subgraph(max_DG)
+print("check point 2")
 Biggest_W = DG.subgraph(max_W_DG)
+print("check point 3")
 Biggest_W = Biggest_W.to_undirected()
+print("check point 4")
+ecc = nx.eccentricity(DG)
+print(ecc)
 
 # print(Biggest.nodes())
 diameter = nx.diameter(Biggest)
@@ -35,6 +40,7 @@ print("diameter strongly connected: ", diameter)
 print("radius: ", radius)
 print("center nodes: ", centre)
 
+# non funge capire il perchè
 diameter_W = nx.diameter(Biggest_W)
 centre_W = nx.center(Biggest_W)
 radius_W = nx.radius(Biggest_W)
