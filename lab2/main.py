@@ -46,7 +46,6 @@ def arrival(environment, nation, arrival_rate):
             china_time.append(env.now + nation_timezone["china"])
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
-
         # a new client arrived
         Client(environment, nation, client_id)
         client_id += 1
@@ -59,6 +58,7 @@ class Client(object):
         self.client_id = client_id
         self.response_time = 0
         self.k = random.randint(10, 100)
+
         # the client is a "process"
         env.process(self.run())
 
@@ -88,6 +88,7 @@ class Client(object):
             # until env.process is complete
             yield env.process(dictionary_of_server[string[i]].serve(pack_dim))
 
+
         self.response_time = self.env.now - time_arrival
         # print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
         stats.push(self.response_time)
@@ -101,12 +102,14 @@ class Servers(object):
         self.capacity = capacity
         self.servers = simpy.Resource(env, capacity=max_client)
         # https://simpy.readthedocs.io/en/latest/simpy_intro/shared_resources.html
+        self.client_arrive = env.event()
 
     def serve(self, pack_dim):
         # request a server
 
         with self.servers.request() as request:  # create obj then destroy
             yield request
+            self.client_arrive.succed()
             shared_capacity = self.capacity / self.servers.count
             service_time = pack_dim / shared_capacity
             # print("shared capacity: ", shared_capacity)
@@ -115,7 +118,7 @@ class Servers(object):
             # server is free, wait until service is finish
 
             # yield an event to the simulator
-            yield self.env.timeout(service_time)
+            yield self.env.timeout(service_time) | self.client_arrive
 
 
 if __name__ == '__main__':
@@ -128,7 +131,7 @@ if __name__ == '__main__':
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 5e5  # diverso per ogni
+    max_capacity = 5e5  # diverso per ogni bits/s mod in bits/h
     response_time = []
 
     # create lambda clients
