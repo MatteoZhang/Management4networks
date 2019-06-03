@@ -98,7 +98,7 @@ class Servers(object):
         self.servers = simpy.Resource(env, capacity=max_client)
         # https://simpy.readthedocs.io/en/latest/simpy_intro/shared_resources.html
 
-    def serve(self, pack_dim):
+    def serve(self, pack_dim, ):
         # request a server
 
         with self.servers.request() as request:  # create obj then destroy
