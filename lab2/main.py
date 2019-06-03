@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 N_SERVERS = 5
 RANDOM_SEED = 1
 MAX_CLIENT = 5  # max client per server
-SIM_TIME = 24*60*60  # in seconds
+# SIM_TIME = 24*60*60  # in seconds
+SIM_TIME = 72  # in hours
+H24 = 24
+S24 = 24*60*60
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 100  # 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total":0}
@@ -19,7 +22,8 @@ def arrival(environment, nation, arrival_rate):
     global client_id
     # keep track of client number client id
     # arrival will continue forever
-    nation_timezone = {"china":8 , "usa":-5,"india":5,"brazil":-3,"japan":9}
+    nation_timezone = {"china": 0, "usa": -5, "india": 5, "brazil": -3, "japan": 9}
+    # nation_timezone = {"china": 8*60*60, "usa": -5*60*60, "india": 5*60*60, "brazil": -3*60*60, "japan": 9*60*60}
     global china
     global china_time
     china = []
@@ -29,8 +33,8 @@ def arrival(environment, nation, arrival_rate):
         nation_stats[nation] += 1
         nation_stats["total"] = client_id
 
-        if (env.now % 24*60*60) < ((8+nation_timezone[nation])*60*60) or \
-                (env.now % 24*60*60 > ((20+nation_timezone[nation])*60*60)):
+        if (env.now % H24) < (8+nation_timezone[nation]) or \
+                (env.now % H24 > (20+nation_timezone[nation])):
             arrival_rate2 = copy.deepcopy(arrival_rate * 0.1)
         else:
             arrival_rate2 = copy.deepcopy(arrival_rate)
@@ -39,7 +43,7 @@ def arrival(environment, nation, arrival_rate):
         # print("arrival_rate : ", arrival_rate2)
         if nation == "china":
             china.append(arrival_rate2)
-            china_time.append(env.now + nation_timezone["china"]*60*60)
+            china_time.append(env.now + nation_timezone["china"])
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
 
@@ -49,9 +53,9 @@ def arrival(environment, nation, arrival_rate):
 
 class Client(object):
 
-    def __init__(self, environment, i="nations", client_id=0):
+    def __init__(self, environment, nation="nations", client_id=0):
         self.env = environment
-        self.nation = i
+        self.nation = nation
         self.client_id = client_id
         self.response_time = 0
         self.k = random.randint(10, 100)
@@ -73,7 +77,7 @@ class Client(object):
             # Try to find free servers if the closest one is already full
             while dictionary_of_server[string[i]].servers.count == MAX_CLIENT:
                 i += 1
-                # If all the servers have been checked, then come back to the closest one and put the client in the queue
+            # If all the servers have been checked, then come back to the closest one and put the client in the queue
                 if i == N_SERVERS:
                     i = 0
                     break
@@ -116,13 +120,15 @@ class Servers(object):
 
 if __name__ == '__main__':
     nations = ["china", "usa", "india", "japan", "brazil"]
-    arrival_nations = {"china": round(765367947 / total_users, 2), "usa": round(451347554 / total_users, 2),
-               "india": round(244090854 / total_users, 2),
-               "brazil": round(141206801 / total_users, 2), "japan": round(115845120 / total_users, 2)}
+    arrival_nations = {"china": round(765367947 / total_users, 2),
+                       "usa": round(451347554 / total_users, 2),
+                       "india": round(244090854 / total_users, 2),
+                       "brazil": round(141206801 / total_users, 2),
+                       "japan": round(115845120 / total_users, 2)}
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 5e5  # diverso per ogni server
+    max_capacity = 5e5  # diverso per ogni
     response_time = []
 
     # create lambda clients
@@ -151,6 +157,8 @@ if __name__ == '__main__':
     plt.plot(china_time, china)
     plt.grid()
     plt.xlim([0, SIM_TIME])
+    plt.xlabel("hours")
+    plt.ylabel("% of arrival rate for china")
     plt.show()
 # totally occupied servers in this case
 # we need parallel servers for example 5 servers for 5 continents
