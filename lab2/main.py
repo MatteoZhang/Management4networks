@@ -13,10 +13,11 @@ MAX_CLIENT = 5  # max client per server
 # SIM_TIME = 24*60*60  # in seconds
 SIM_TIME = 72  # in hours
 H24 = 24
-S24 = 24*60*60
+S24 = 24 * 60 * 60
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 100  # 100%, and after will be used to define the rate of arrival of each country
-nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total":0}
+nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
+
 
 def arrival(environment, nation, arrival_rate):
     global client_id
@@ -33,8 +34,8 @@ def arrival(environment, nation, arrival_rate):
         nation_stats[nation] += 1
         nation_stats["total"] = client_id
 
-        if (env.now % H24) < (8+nation_timezone[nation]) or \
-                (env.now % H24 > (20+nation_timezone[nation])):
+        if (env.now % H24) < (8 + nation_timezone[nation]) or \
+                (env.now % H24 > (20 + nation_timezone[nation])):
             arrival_rate2 = copy.deepcopy(arrival_rate * 0.1)
         else:
             arrival_rate2 = copy.deepcopy(arrival_rate)
@@ -49,6 +50,7 @@ def arrival(environment, nation, arrival_rate):
         # a new client arrived
         Client(environment, nation, client_id)
         client_id += 1
+
 
 class Client(object):
 
@@ -68,7 +70,7 @@ class Client(object):
         # print("client", self.client_id, "from ", self.nation, "has arrived at", time_arrival)
         # print("client tot request: ", self.k)
 
-        for j in range(1, self.k+1):
+        for j in range(1, self.k + 1):
             pack_dim = random.randint(8000, 16000)
             # print("client", self.client_id, " request number : ", j)
             string = nearest_servers(self.nation)  # A string with sorted servers according to the distances
@@ -77,7 +79,7 @@ class Client(object):
             # Try to find free servers if the closest one is already full
             while dictionary_of_server[string[i]].servers.count == MAX_CLIENT:
                 i += 1
-            # If all the servers have been checked, then come back to the closest one and put the client in the queue
+                # If all the servers have been checked, then come back to the closest one and put the client in the queue
                 if i == N_SERVERS:
                     i = 0
                     break
@@ -87,7 +89,6 @@ class Client(object):
             # The client goes to the first server to be served ,now is changed
             # until env.process is complete
             yield env.process(dictionary_of_server[string[i]].serve(pack_dim))
-
 
         self.response_time = self.env.now - time_arrival
         # print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
@@ -109,7 +110,7 @@ class Servers(object):
 
         with self.servers.request() as request:  # create obj then destroy
             yield request
-            self.client_arrive.succed()
+            self.client_arrive.succced()
             shared_capacity = self.capacity / self.servers.count
             service_time = pack_dim / shared_capacity
             # print("shared capacity: ", shared_capacity)
@@ -135,7 +136,7 @@ if __name__ == '__main__':
     response_time = []
 
     # create lambda clients
-    #for i in range(1, lambd):
+    # for i in range(1, lambd):
     env = simpy.Environment()
     stats = Statistics()
     # servers
@@ -145,13 +146,13 @@ if __name__ == '__main__':
         dictionary_of_server[i] = env.server
 
     # start the arrival process
-    env.process(arrival(environment=env, nation ="china", arrival_rate=arrival_rate_global*arrival_nations["china"]))
+    env.process(arrival(environment=env, nation="china", arrival_rate=arrival_rate_global * arrival_nations["china"]))
     # technically, a process actually is an event. Example: process of parking a car.
     # https://simpy.readthedocs.io/en/latest/simpy_intro/process_interaction.html?highlight=process
-    env.process(arrival(environment=env, nation="usa", arrival_rate=arrival_rate_global*arrival_nations["usa"]))
-    env.process(arrival(environment=env, nation="india", arrival_rate=arrival_rate_global*arrival_nations["india"]))
-    env.process(arrival(environment=env, nation="brazil", arrival_rate=arrival_rate_global*arrival_nations["brazil"]))
-    env.process(arrival(environment=env, nation="japan", arrival_rate=arrival_rate_global*arrival_nations["japan"]))
+    env.process(arrival(environment=env, nation="usa", arrival_rate=arrival_rate_global * arrival_nations["usa"]))
+    env.process(arrival(environment=env, nation="india", arrival_rate=arrival_rate_global * arrival_nations["india"]))
+    env.process(arrival(environment=env, nation="brazil", arrival_rate=arrival_rate_global * arrival_nations["brazil"]))
+    env.process(arrival(environment=env, nation="japan", arrival_rate=arrival_rate_global * arrival_nations["japan"]))
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
     response_time.append(stats.mean())

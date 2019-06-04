@@ -1,7 +1,7 @@
 import simpy
 import random
 
-RANDOM_SEED = 42
+RANDOM_SEED = 0
 NUM_SERVERS = 1
 SIM_TIME = 100
 
@@ -40,7 +40,7 @@ class Client(object):
 
         # The client goes to the first server to be served ,now is changed
         # until env.process is complete
-        yield env.process(env.servers.serve())
+        yield env.process(env.servers.serve(time_arrival))
 
         self.response_time = self.env.now - time_arrival
         print("client", self.number, "response time ", self.response_time)
@@ -55,7 +55,7 @@ class Servers(object):
         self.servers = simpy.Resource(env, num_servers)
         self.client_arrived = self.env.event()
 
-    def serve(self):
+    def serve(self, timer):
 
         # self.client_arrived.succeed()
 
@@ -65,26 +65,22 @@ class Servers(object):
 
             # server is free, wait until service is finished
             service_time = random.expovariate(lambd=self.service_rate)
-            arriving = self.env.timeout(0)
+            arriving = self.env.timeout(env.now-timer)
             # yield an event to the simulator
             trigger_it = yield self.env.timeout(service_time) | arriving
             # yield self.env.timeout(service_time) | self.client_arrived
             print(trigger_it)
 
+
 if __name__ == '__main__':
-
     random.seed(RANDOM_SEED)  # same sequence each time
-
-    mu = 2.0  # 2 customer on average per unit time (service time)
-    lambd = 10  # one customer enter per time (arrival time)
-
     env = simpy.Environment()
-    env.servers = Servers(env, NUM_SERVERS, mu)  # service
+    env.servers = Servers(env, NUM_SERVERS, 2)  # service
     # start the arrival process
-    i = 1
-    env.process(arrival(env, i))  # customers
+    env.process(arrival(env, 1))  # customers
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)
+
 
 
 
