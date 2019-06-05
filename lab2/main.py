@@ -3,6 +3,7 @@ import numpy
 import random
 from runstats import Statistics
 from lab2.asset import *
+import copy
 
 import matplotlib.pyplot as plt
 
@@ -10,7 +11,10 @@ import matplotlib.pyplot as plt
 N_SERVERS = 5
 RANDOM_SEED = 1
 MAX_CLIENT = 5  # max client per server
+
 SIM_TIME = 24  # 24 for each day
+
+# SIM_TIME = 24*60*60  # in seconds
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 10  # 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
@@ -21,11 +25,31 @@ def arrival(environment, nation, arrival_rate):
     global client_id
     # keep track of client number client id
     # arrival will continue forever
+
+    nation_timezone = {"china":8 , "usa":-5,"india":5,"brazil":-3,"japan":9}
+    global china
+    global china_time
+    china = []
+    china_time = []
+
     while True:
         nation_stats[nation] += 1
         nation_stats["total"] = client_id
 
         inter_arrival = random.expovariate(lambd=arrival_rate)
+
+
+        if (env.now % 24*60*60) < ((8+nation_timezone[nation])*60*60) or \
+                (env.now % 24*60*60 > ((20+nation_timezone[nation])*60*60)):
+            arrival_rate2 = copy.deepcopy(arrival_rate * 0.1)
+        else:
+            arrival_rate2 = copy.deepcopy(arrival_rate)
+
+        inter_arrival = random.expovariate(lambd=arrival_rate2)
+        # print("arrival_rate : ", arrival_rate2)
+        if nation == "china":
+            china.append(arrival_rate2)
+            china_time.append(env.now + nation_timezone["china"]*60*60)
 
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
@@ -164,6 +188,15 @@ if __name__ == '__main__':
     random.seed(RANDOM_SEED)  # same sequence each time
 
     max_capacity = 10e4  # The same for each server
+
+    nations = ["china", "usa", "india", "japan", "brazil"]
+    arrival_nations = {"china": round(765367947 / total_users, 2), "usa": round(451347554 / total_users, 2),
+               "india": round(244090854 / total_users, 2),
+               "brazil": round(141206801 / total_users, 2), "japan": round(115845120 / total_users, 2)}
+    client_id = 1
+    random.seed(RANDOM_SEED)  # same sequence each time
+
+    max_capacity = 5e5  # diverso per ogni server
     response_time = []
 
     # create lambda clients
@@ -185,7 +218,16 @@ if __name__ == '__main__':
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
     response_time.append(stats.mean())
+
     print(nation_stats)
+
+
+    # print(nation_stats)
+
+    plt.plot(china_time, china)
+    plt.grid()
+    plt.xlim([0, SIM_TIME])
+    plt.show()
 
 # totally occupied servers in this case
 # we need parallel servers for example 5 servers for 5 continents
