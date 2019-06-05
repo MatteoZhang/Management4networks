@@ -1,7 +1,10 @@
 import simpy
+import numpy
 import random
 from runstats import Statistics
 from lab2.asset import *
+
+import matplotlib.pyplot as plt
 
 # init
 N_SERVERS = 5
@@ -68,7 +71,9 @@ class Client(object):
             print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
             # The client goes to the first server to be served ,now is changed
             # until env.process is complete
-            yield env.process(dictionary_of_server[string[i]].serve(self.nation, j, self.client_id, pack_dim))
+            serve_customer = env.process(
+                dictionary_of_server[string[i]].serve(self.nation, j, self.client_id, pack_dim))
+            yield serve_customer
 
         self.response_time = self.env.now - time_arrival
         print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
@@ -82,11 +87,17 @@ class Servers(object):
         self.env = environment
         self.capacity = capacity
         self.servers = simpy.Resource(env, capacity=max_client)
-        self.client_arrive = env.event()
-        self.client_departure = env.event()
+        self.client_arrive = self.env.event()
+        self.client_departure = self.env.event()
         # https://simpy.readthedocs.io/en/latest/simpy_intro/shared_resources.html
 
     def serve(self, name_client, req, client, pack_dim):
+
+        # def revaluate_times(event):
+        #     print("Hi")
+        #
+        # self.client_arrive.callbacks.append(revaluate_times(supreme_dict))
+
         # request a server
         if self.servers.count == MAX_CLIENT - 1:
             for i in nearest_servers(self.name_server):
@@ -99,60 +110,45 @@ class Servers(object):
         with self.servers.request() as request:  # create obj then destroy
             yield request
 
+            ok = 0
             name_request = "client_" + str(client) + "_req_" + str(req)
             shared_capacity = self.capacity / self.servers.count
             roundtrip = RTT(self.name_server, name_client) / (3 * 10e5)  # Latency due to RTT
             latency = random.randint(10, 100) * 10e-3  # Latency of the server
             yield self.env.timeout(roundtrip + latency)
-
-            self.arrival_now()
-            print("some one arrived")
+            if self.servers.count != 1:
+                self.client_arrive.succeed()
 
             now = self.env.now
             service_time = pack_dim / shared_capacity
             print("shared capacity for", name_request, " : ", shared_capacity)
-            print("service time for", name_request, " : ", service_time)
-            supreme_dict[self.name_server]["current_requests"][name_request] = [service_time, shared_capacity,
-                                                                                pack_dim,
+            print("service time for", name_request, " : ", service_time, "Starting from ", self.env.now)
+            supreme_dict[self.name_server]["current_requests"][name_request] = [service_time, shared_capacity, pack_dim,
                                                                                 now]
-            new_supreme_dict = global_service_times(self.name_server, supreme_dict, now, shared_capacity)
-            for i in new_supreme_dict[self.name_server]["current_requests"].keys():
-                supreme_dict[self.name_server]["current_requests"][i] = \
-                    new_supreme_dict[self.name_server]["current_requests"][i]
-
-            # yield an event to the simulator
-            update_process = env.process(self.arrive_departure_serve(service_time))
-            yield update_process
-            self.departure_now()
-            print("some one departed")
+            while ok == 0:
+                now = self.env.now
+                new_supreme_dict = global_service_times(self.name_server, supreme_dict, name_request, now,
+                                                        self.capacity/self.servers.count)
+                supreme_dict[self.name_server]["current_requests"][name_request] = \
+                new_supreme_dict[self.name_server]["current_requests"][name_request]
+                service_time = supreme_dict[self.name_server]["current_requests"][name_request][0]
+                if service_time < 0:
+                    service_time = 0
+                yield self.env.timeout(service_time) | self.client_arrive | self.client_departure
+                self.client_arrive = self.env.event()
+            print("The service time was ", service_time)
+            print("The client left the server in ", self.env.now - now)
+        self.client_departure.succeed()
+        self.client_departure = self.env.event()
 
         now = self.env.now
-        supreme_dict[self.name_server]["tot_cost"] += evaluate_cost(
-            supreme_dict[self.name_server]["last_update"], now,
-            self.name_server)
+        supreme_dict[self.name_server]["tot_cost"] += evaluate_cost(supreme_dict[self.name_server]["last_update"], now,
+                                                                    self.name_server)
         supreme_dict[self.name_server]["last_update"] = now
         del supreme_dict[self.name_server]["current_requests"][name_request]
         if self.servers.count == 0 and self.name_server not in never_offline:
             supreme_dict[self.name_server]["online"] = False
             print("Server", self.name_server, "went offline")
-
-    def arrival_now(self):
-        self.client_arrive.succeed()
-        self.client_arrive = env.event()
-
-    def departure_now(self):
-        self.client_departure.succeed()
-        self.client_departure = env.event()
-
-    def arrive_departure_serve(self, service_time):
-        r = self.env.timeout(service_time) or self.client_departure or self.client_arrive
-        if r == self.env.timeout(service_time):
-            pass
-        elif r == self.client_departure:
-            print("D")
-        elif r == self.client_arrive:
-            print("A")
-        yield self.env.timeout(service_time) | self.client_departure | self.client_arrive
 
 
 if __name__ == '__main__':
@@ -190,3 +186,6 @@ if __name__ == '__main__':
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
     response_time.append(stats.mean())
     print(nation_stats)
+
+# totally occupied servers in this case
+# we need parallel servers for example 5 servers for 5 continents
