@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 N_SERVERS = 5
 RANDOM_SEED = 1
 MAX_CLIENT = 20  # max client per server
-SIM_TIME = 24 * 60 * 60  # 24 for each day
+SIM_TIME = 48 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
-arrival_rate_global = 1  # should be 100, and after will be used to define the rate of arrival of each country
+arrival_rate_global = 100  # should be 100, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
 never_offline = ["usa", "india"]
 
@@ -111,7 +111,7 @@ class Servers(object):
             servers_arrival[self.name_server].succeed()
             servers_arrival[self.name_server] = self.env.event()
             latency = random.randint(10, 100) * 10e-3  # Latency of the server
-            yield self.env.timeout(latency)
+
             name_request = "client_" + str(client) + "_req_" + str(req)
 
             now = self.env.now
@@ -137,6 +137,7 @@ class Servers(object):
                     print("A new client arrived or just went away, update needed for: ", name_request)
                 else:
                     go = True
+            yield self.env.timeout(latency)
             print("The service time for client", name_request, "was ", round(service_time, 10))
             print("The client left the server in ", round(self.env.now - now, 10))
 
@@ -165,8 +166,7 @@ if __name__ == '__main__':
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 10e10  # The same for each server bps 10Gbps
-    response_time = []
+    max_capacity = 10e10  # The same for each server bps 10Gbps 10^10 10^6 Mbps
 
     env = simpy.Environment()
     stats = Statistics()
@@ -189,8 +189,8 @@ if __name__ == '__main__':
         env.process(arrival(environment=env, nation=i, arrival_rate=arrival_rate_global * arrival_nations[i]))
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
-    response_time.append(stats.mean())
     print(nation_stats)
 
 # totally occupied servers in this case
 # we need parallel servers for example 5 servers for 5 continents
+# TODO list print cost per day , average response time per client
