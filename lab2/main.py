@@ -26,7 +26,6 @@ def arrival(environment, nation, arrival_rate):
     # keep track of client number client id
     # arrival will continue forever
 
-    nation_timezone = {"china":8 , "usa":-5,"india":5,"brazil":-3,"japan":9}
     global china
     global china_time
     china = []
@@ -36,14 +35,7 @@ def arrival(environment, nation, arrival_rate):
         nation_stats[nation] += 1
         nation_stats["total"] = client_id
 
-        inter_arrival = random.expovariate(lambd=arrival_rate)
-
-
-        if (env.now % 24*60*60) < ((8+nation_timezone[nation])*60*60) or \
-                (env.now % 24*60*60 > ((20+nation_timezone[nation])*60*60)):
-            arrival_rate2 = copy.deepcopy(arrival_rate * 0.1)
-        else:
-            arrival_rate2 = copy.deepcopy(arrival_rate)
+        arrival_rate2 = arrival_function(env.now,nation,arrival_rate)
 
         inter_arrival = random.expovariate(lambd=arrival_rate2)
         # print("arrival_rate : ", arrival_rate2)
@@ -162,8 +154,8 @@ class Servers(object):
                 self.client_arrive = self.env.event()
             print("The service time was ", service_time)
             print("The client left the server in ", self.env.now - now)
-        self.client_departure.succeed()
-        self.client_departure = self.env.event()
+        #self.client_departure.succeed()
+        #self.client_departure = self.env.event()
 
         now = self.env.now
         supreme_dict[self.name_server]["tot_cost"] += evaluate_cost(supreme_dict[self.name_server]["last_update"], now,
