@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 # init
 N_SERVERS = 5
 RANDOM_SEED = 1
-MAX_CLIENT = 5  # max client per server
-SIM_TIME = 24 * 60 * 60  # 24 for each day
+MAX_CLIENT = 20  # max client per server
+SIM_TIME = 72 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 0.01  # should be 100, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
@@ -49,7 +49,7 @@ class Client(object):
         self.nation = name_client
         self.client_id = client_id
         self.response_time = 0
-        self.k = random.randint(1, 10)
+        self.k = random.randint(10, 100)
         # the client is a "process"
         self.env.process(self.run())
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 10e4  # The same for each server bps
+    max_capacity = 10e10  # The same for each server bps
     response_time = []
 
     env = simpy.Environment()

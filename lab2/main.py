@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # init
 N_SERVERS = 5
 RANDOM_SEED = 1
-MAX_CLIENT = 5  # max client per server
+MAX_CLIENT = 20  # max client per server
 SIM_TIME = 24 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 1  # should be 100, and after will be used to define the rate of arrival of each country
@@ -43,14 +43,14 @@ class Client(object):
         self.nation = name_client
         self.client_id = client_id
         self.response_time = 0
-        self.k = random.randint(1, 10)
+        self.k = random.randint(10, 100)
         # the client is a "process"
         self.env.process(self.run())
 
     def run(self):
         # store the absolute arrival time
         time_arrival = self.env.now
-        print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
+        print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 10))
         print("client tot request: ", self.k)
 
         for j in range(1, self.k + 1):
@@ -79,9 +79,9 @@ class Client(object):
                         break
 
             roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT
-            latency = random.randint(10, 100) * 10e-3  # Latency of the server
-            print("Latency to reach the server: ", round(latency + roundtrip, 5))
-            yield self.env.timeout(roundtrip + latency)
+
+            print("Latency to reach the server: ", round(roundtrip, 5))
+            yield self.env.timeout(roundtrip)
             # The client goes to the first server to be served ,now is changed
             # until env.process is complete
             serve_customer = env.process(
@@ -108,10 +108,12 @@ class Servers(object):
         # request a server
         with self.servers.request() as request:  # create obj then destroy
             yield request
-
-            name_request = "client_" + str(client) + "_req_" + str(req)
             servers_arrival[self.name_server].succeed()
             servers_arrival[self.name_server] = self.env.event()
+            latency = random.randint(10, 100) * 10e-3  # Latency of the server
+            yield self.env.timeout(latency)
+            name_request = "client_" + str(client) + "_req_" + str(req)
+
             now = self.env.now
             shared_capacity = self.capacity / self.servers.count
             service_time = pack_dim / shared_capacity
@@ -131,12 +133,12 @@ class Servers(object):
 
                 yield self.env.timeout(service_time) | servers_arrival[self.name_server] | servers_departure[
                     self.name_server]
-                if round((self.env.now - now), 5) < round(service_time, 5):
+                if round((self.env.now - now), 10) < round(service_time, 10):
                     print("A new client arrived or just went away, update needed for: ", name_request)
                 else:
                     go = True
-            print("The service time for client", name_request, "was ", round(service_time, 5))
-            print("The client left the server in ", round(self.env.now - now, 5))
+            print("The service time for client", name_request, "was ", round(service_time, 10))
+            print("The client left the server in ", round(self.env.now - now, 10))
 
         servers_departure[self.name_server].succeed()
         servers_departure[self.name_server] = self.env.event()
@@ -163,7 +165,7 @@ if __name__ == '__main__':
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 10e4  # The same for each server bps
+    max_capacity = 10e10  # The same for each server bps 10Gbps
     response_time = []
 
     env = simpy.Environment()
