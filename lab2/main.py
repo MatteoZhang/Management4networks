@@ -12,7 +12,7 @@ RANDOM_SEED = 1
 MAX_CLIENT = 20  # max client per server
 SIM_TIME = 48 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
-arrival_rate_global = 100  # should be 100, and after will be used to define the rate of arrival of each country
+arrival_rate_global = 0.01  # should be 100, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
 never_offline = ["usa", "india"]
 
@@ -92,6 +92,8 @@ class Client(object):
         self.response_time = self.env.now - time_arrival
         print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
         stats.push(self.response_time)
+        stats_dict[self.nation].push(self.response_time)
+
 
 
 class Servers(object):
@@ -170,11 +172,18 @@ if __name__ == '__main__':
 
     env = simpy.Environment()
     stats = Statistics()
+    global stats_dict
+    stats_dict = {}
+    nations = ["china","brazil","usa","japan","india"]
+    for i in nations:
+        stats_dict[i] = Statistics()
+
     # servers
     dictionary_of_server = {}
     for i in supreme_dict.keys():
         env.server = Servers(environment=env, max_client=MAX_CLIENT, capacity=max_capacity, name=i)
         dictionary_of_server[i] = env.server
+
 
     servers_arrival = {}
     servers_departure = {}
@@ -189,8 +198,13 @@ if __name__ == '__main__':
         env.process(arrival(environment=env, nation=i, arrival_rate=arrival_rate_global * arrival_nations[i]))
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
+    dictionary_stats_nation = {}
+    for i in nations:
+        dictionary_stats_nation[i] = stats_dict[i].mean()
     print(nation_stats)
-
+    print("avg response of all clients: ", stats.mean())
+    print(dictionary_stats_nation)
 # totally occupied servers in this case
 # we need parallel servers for example 5 servers for 5 continents
-# TODO list print cost per day , average response time per client
+# TODO list print cost per day , average response time per client per server
+
