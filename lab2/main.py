@@ -10,12 +10,13 @@ import matplotlib.pyplot as plt
 N_SERVERS = 5
 RANDOM_SEED = 1
 MAX_CLIENT = 20  # max client per server
-SIM_TIME = 48 * 60 * 60  # 24 for each day
+WARM_UP = 8 * 60 * 60
+SIM_TIME = 24 * 60 * 60 + WARM_UP  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 0.01  # should be 100, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
-never_offline = ["usa", "india"]
 
+never_offline = ["usa", "india"]
 
 def arrival(environment, nation, arrival_rate):
     global client_id
@@ -91,8 +92,9 @@ class Client(object):
 
         self.response_time = self.env.now - time_arrival
         print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
-        stats.push(self.response_time)
-        stats_dict[self.nation].push(self.response_time)
+        if env.now > WARM_UP:
+            stats.push(self.response_time)
+            stats_dict[self.nation].push(self.response_time)
 
 
 
@@ -162,6 +164,7 @@ if __name__ == '__main__':
                     "india": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}},
                     "japan": {"tot_cost": 0, "last_update": 0, "online": False, "count": 0, "current_requests": {}},
                     "brazil": {"tot_cost": 0, "last_update": 0, "online": False, "count": 0, "current_requests": {}}}
+
     arrival_nations = {"china": round(765367947 / total_users, 2), "usa": round(451347554 / total_users, 2),
                        "india": round(244090854 / total_users, 2),
                        "brazil": round(141206801 / total_users, 2), "japan": round(115845120 / total_users, 2)}
@@ -174,8 +177,8 @@ if __name__ == '__main__':
     stats = Statistics()
     global stats_dict
     stats_dict = {}
-    nations = ["china","brazil","usa","japan","india"]
-    for i in nations:
+    supreme_dict.keys()
+    for i in supreme_dict.keys():
         stats_dict[i] = Statistics()
 
     # servers
@@ -199,12 +202,15 @@ if __name__ == '__main__':
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
     dictionary_stats_nation = {}
-    for i in nations:
+    for i in supreme_dict.keys():
         dictionary_stats_nation[i] = stats_dict[i].mean()
     print(nation_stats)
     print("avg response of all clients: ", stats.mean())
     print(dictionary_stats_nation)
 # totally occupied servers in this case
 # we need parallel servers for example 5 servers for 5 continents
-# TODO list print cost per day , average response time per client per server
+# TODO average response time after warm-up time
+# TODO cost, server on off dynamically
+# TODO plot cost vs sim time of all the system, plot response time vs # trial
+
 
