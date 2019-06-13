@@ -4,12 +4,16 @@ import random
 def nearest_servers(id):
     nations = ["china", "usa", "india", "japan", "brazil"]
     index = nations.index(id)
-    distances = [[0, 4, 2, 1, 3],  [4, 0, 5, 3, 2], [1, 5, 0, 2, 6], [1, 3, 2, 0, 4], [3, 2, 4, 6, 0]]
+    distances = [[0, 11004, 3783, 2100, 16950],
+                 [1104, 0, 11770, 10864, 6835],
+                 [3783, 11770, 0, 5848, 14258],
+                 [2100, 10864, 5848, 0, 17692],
+                 [16950, 6835, 14258, 17962, 0]]
     list_nations = []
     for i in range(len(nations)):
         closest = nations[distances[index].index(min(distances[index]))]
         list_nations.append(closest)
-        distances[index][distances[index].index(min(distances[index]))] += 10
+        distances[index][distances[index].index(min(distances[index]))] += max(distances[index])
     return list_nations
 
 
