@@ -1,7 +1,7 @@
 import simpy
 import random
 from runstats import Statistics
-from lab2.asset import *
+from lab2.asset_stat import *
 
 # init
 N_SERVERS = 5
