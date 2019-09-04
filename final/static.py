@@ -21,6 +21,7 @@ def arrival(environment, nation, arrival_rate):
     global client_id
     # keep track of client number client id
     # arrival will continue forever
+    yield environment.timeout(12 * 60 * 60)
     while True:
         # arrival_rate2 differentiate day and night arrival
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
@@ -159,7 +160,6 @@ if __name__ == '__main__':
     max_capacity = 10e10  # The same for each server in 10 Gbps = 1,250,000 KBps
 
     env = simpy.Environment()
-    env.now = env.now + 12*60*60  # warmup
     stats = Statistics()
     stats_dict = {}
     for i in supreme_dict.keys():

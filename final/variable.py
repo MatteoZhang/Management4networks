@@ -22,6 +22,7 @@ def arrival(environment, nation, arrival_rate):
     global client_id
     # keep track of client number client id
     # arrival will continue forever
+    yield environment.timeout(12*60*60)
     while True:
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
@@ -167,6 +168,7 @@ class Servers(object):
             # print("Server", self.name_server, "went offline")
 
 
+
 if __name__ == '__main__':
     supreme_dict = {"china1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
                     "usa1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
@@ -180,7 +182,7 @@ if __name__ == '__main__':
     random.seed(RANDOM_SEED)  # same sequence each time
 
     env = simpy.Environment()
-    env.now = env.now + 12 * 60 * 60  # warmup
+
     stats = Statistics()
     stats_dict = {}
     for i in arrival_nations.keys():
