@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 RANDOM_SEED = 1
 MAX_CLIENT = 5  # max client per server
 max_capacity = 10e10  # The same for each server in 10 Gbps
+# se metto 10e4 mi da keyerror (da controllare)
 SIM_TIME = 36 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
 arrival_rate_global = 1  # 100%, and after will be used to define the rate of arrival of each country
@@ -90,8 +91,7 @@ class Client(object):
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
             # Wait until the request is served by the process serve_customer
-            serve_customer = env.process(
-                dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
+            serve_customer = env.process(dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
             yield serve_customer
             if string[i] in supreme_dict.keys():
                 supreme_dict[string[i]]["count"] -= 1
@@ -147,8 +147,8 @@ class Servers(object):
                 if b not in r and c not in r:
                     go = True
                 else:
-                    print("A new client arrived or just went away from server ", self.name_server,
-                          "update needed for: ", name_request)
+                    pass
+                    # print("A new client arrived or just went away from server ", self.name_server,"update needed for: ", name_request)
             yield self.env.timeout(latency)
             # print("The client left the server in ", round(self.env.now - now, 10))
 
