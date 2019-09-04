@@ -6,21 +6,23 @@ from final.asset import *
 
 import matplotlib.pyplot as plt
 
-# init
-N_SERVERS = 5
+# initialization
+N_SERVERS = 5  # top-n n=5
 RANDOM_SEED = 1
-MAX_CLIENT = 20  # max client per server
-SIM_TIME = 24 * 60 * 60  # 24 for each day
-total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
-arrival_rate_global = 10  # 100%, and after will be used to define the rate of arrival of each country
+MAX_CLIENT = 20  # max client per server instead of MaxReq
+SIM_TIME = 36 * 60 * 60  # 24 for each day sim time in seconds minumum warmup 12 hours
+total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120  # internet users wikipedia
+arrival_rate_global = 1  # 1 = 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
 
 
 def arrival(environment, nation, arrival_rate):
+    # arrival rate expressed in fraction * 100
     global client_id
     # keep track of client number client id
     # arrival will continue forever
     while True:
+        # arrival_rate2 differentiate day and night arrival
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
 
@@ -30,6 +32,7 @@ def arrival(environment, nation, arrival_rate):
         # a new client arrived
         Client(environment, nation, client_id)
         client_id += 1
+        print("env.now: ", env.now)
 
 
 class Client(object):
@@ -38,6 +41,7 @@ class Client(object):
         self.env = environment
         self.nation = name_client
         self.client_id = client_id
+
         self.response_time = 0
         self.k = random.randint(10, 100)
         # the client is a "process"
@@ -46,11 +50,15 @@ class Client(object):
     def run(self):
         # store the absolute arrival time
         time_arrival = self.env.now
-        print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
+        # print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
         # print("client tot request: ", self.k)
 
         for j in range(1, self.k + 1):
-            pack_dim = random.randint(8000, 16000)
+            # expessed in bit
+            # average request
+            # https://stackoverflow.com/questions/5358109/what-is-the-average-size-of-an-http-request-response-header
+            # average webpage https://gigaom.com/2014/12/29/the-overweight-web-average-web-page-size-is-up-15-in-2014/
+            pack_dim = random.randint(200*8, 2000*8)
             # print("client", self.client_id, " request number : ", j)
             string = nearest_servers(self.nation)  # A string with sorted servers according to the distances
             # print(string)
@@ -58,15 +66,16 @@ class Client(object):
             # Try to find free servers if the closest one is already full
             while supreme_dict[string[i]]["count"] >= MAX_CLIENT:
                 i += 1
-                # If all the servers have been checked, then come back to the closest one and put the client in the queue
+                # If all the servers have been checked, then come back to the
+                # closest one and put the client in the queue
                 if i == N_SERVERS:
                     i = 0
                     break
             supreme_dict[string[i]]["count"] += 1
-            print("Server Chosen: ", string[i])
-            print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
-            print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
-            roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT
+            # print("Server Chosen: ", string[i])
+            # print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
+            # print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
+            roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT in
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
             # The client goes to the first server to be served ,now is changed
@@ -99,7 +108,7 @@ class Servers(object):
         # request a server
         with self.servers.request() as request:
             yield request  # create obj then destroy
-            latency = random.randint(1, 10) * 10e-3  # Latency of the server
+            latency = random.randint(1, 10) * 10e-3  # Latency of the server seconds
             servers_arrival[self.name_server].succeed()
             servers_arrival[self.name_server] = self.env.event()
             name_request = "client_" + str(client) + "_req_" + str(req)
@@ -147,9 +156,10 @@ if __name__ == '__main__':
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 10e10  # The same for each server in 10 Gbps
+    max_capacity = 10e10  # The same for each server in 10 Gbps = 1,250,000 KBps
 
     env = simpy.Environment()
+    env.now = env.now + 12*60*60  # warmup
     stats = Statistics()
     stats_dict = {}
     for i in supreme_dict.keys():
@@ -175,8 +185,17 @@ if __name__ == '__main__':
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
     for i in supreme_dict.keys():
         supreme_dict[i]["tot_cost"] += evaluate_cost(supreme_dict[i]["last_update"], SIM_TIME, i)
+
     avg_response = stats.mean()
     dictionary_stats_nation = {}
     for i in supreme_dict.keys():
         dictionary_stats_nation[i] = stats_dict[i].mean()
-    print(nation_stats)
+
+    avg_cost = 0
+    for nation in supreme_dict.keys():
+        avg_cost += supreme_dict[nation]["tot_cost"]
+
+    print("avg cost: ", avg_cost/5)
+    print("response for each nation: ", dictionary_stats_nation)
+    print("avg response: ", avg_response)
+    # print(nation_stats)
