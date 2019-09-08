@@ -9,10 +9,11 @@ import matplotlib.pyplot as plt
 # init
 RANDOM_SEED = 1
 MAX_CLIENT = 5  # max client per server
-max_capacity = 10e4  # The same for each server in 10 Gbps
-SIM_TIME = 24 * 60 * 60  # 24 for each day
+max_capacity = 10e10  # The same for each server in 10 Gbps
+# se metto 10e4 mi da keyerror (da controllare)
+SIM_TIME = 36 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
-arrival_rate_global = 10  # 100%, and after will be used to define the rate of arrival of each country
+arrival_rate_global = 1  # 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
 never_offline = ["china1", "usa1", "india1", "brazil1", "japan1"]
 total_costs = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0}
@@ -22,6 +23,7 @@ def arrival(environment, nation, arrival_rate):
     global client_id
     # keep track of client number client id
     # arrival will continue forever
+    yield environment.timeout(12*60*60)
     while True:
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
@@ -32,6 +34,7 @@ def arrival(environment, nation, arrival_rate):
         # a new client arrived
         Client(environment, nation, client_id)
         client_id += 1
+        print("env.now: ", env.now)
 
 
 class Client(object):
@@ -48,19 +51,19 @@ class Client(object):
     def run(self):
         # store the absolute arrival time
         time_arrival = self.env.now
-        print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
-        print("client tot request: ", self.k)
+        # print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
+        # print("client tot request: ", self.k)
 
         for j in range(1, self.k + 1):
-            pack_dim = random.randint(8000, 16000)
-            print("client", self.client_id, " request number : ", j)
+            pack_dim = random.randint(200*8, 2000*8)
+            # print("client", self.client_id, " request number : ", j)
             close_nations = nearest_servers(self.nation)  # A list with sorted countries according to the distances
             string = []  # A list with sorted servers according to the country in which they are.
             for i in close_nations:
                 for q in supreme_dict.keys():
                     if which_nation(q) == i:
                         string.append(q)
-            print(string)
+            # print("sorted server : ",string)
             i = 0
             # Try to find free servers if the closest one is already full
             while supreme_dict[string[i]]["count"] >= MAX_CLIENT:
@@ -70,9 +73,9 @@ class Client(object):
                     i = 0
                     break
             supreme_dict[string[i]]["count"] += 1
-            print("Server Chosen: ", string[i])
-            print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
-            print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
+            # print("Server Chosen: ", string[i])
+            # print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
+            # print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
             # If a server is going to become full, then create a new server in the same country.
             if supreme_dict[string[i]]["count"] == MAX_CLIENT - 1:
                 new_server = which_nation(string[i]) + str(int(which_id(string[i])) + 1)
@@ -82,14 +85,13 @@ class Client(object):
                     servers_arrival[new_server] = env.event()
                     servers_departure[new_server] = env.event()
                     dictionary_of_server[new_server] = env.server
-                    print("A new server has been created!", new_server)
+                    # print("A new server has been created!", new_server)
             # The request has a RTT to wait before arriving at the server
             roundtrip = RTT(which_nation(string[i]), self.nation) / (3 * 10e5)  # Latency due to RTT
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
             # Wait until the request is served by the process serve_customer
-            serve_customer = env.process(
-                dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
+            serve_customer = env.process(dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
             yield serve_customer
             if string[i] in supreme_dict.keys():
                 supreme_dict[string[i]]["count"] -= 1
@@ -98,7 +100,7 @@ class Client(object):
         self.response_time = self.env.now - time_arrival
         nation_stats[self.nation] += 1
         nation_stats["total"] += 1
-        print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
+        # print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
         stats.push(self.response_time)
         stats_dict[self.nation].push(self.response_time)
 
@@ -125,9 +127,8 @@ class Servers(object):
             now = self.env.now
             shared_capacity = self.capacity / self.servers.count
             service_time = pack_dim / shared_capacity
-            print("shared capacity for", name_request, " : ", shared_capacity)
-            print("service time for", name_request, " : ", service_time, "Request arrived at the server at: ",
-                  round(self.env.now, 10))
+            # print("shared capacity for", name_request, " : ", shared_capacity)
+            # print("service time for", name_request, " : ", service_time, "Request arrived at the server at: ", round(self.env.now, 10))
             supreme_dict[self.name_server]["current_requests"][name_request] = [service_time, shared_capacity, pack_dim,
                                                                                 now]
             go = False
@@ -146,10 +147,10 @@ class Servers(object):
                 if b not in r and c not in r:
                     go = True
                 else:
-                    print("A new client arrived or just went away from server ", self.name_server,
-                          "update needed for: ", name_request)
+                    pass
+                    # print("A new client arrived or just went away from server ", self.name_server,"update needed for: ", name_request)
             yield self.env.timeout(latency)
-            print("The client left the server in ", round(self.env.now - now, 10))
+            # print("The client left the server in ", round(self.env.now - now, 10))
 
         servers_departure[self.name_server].succeed()
         servers_departure[self.name_server] = self.env.event()
@@ -164,7 +165,8 @@ class Servers(object):
             del dictionary_of_server[self.name_server]
             del servers_arrival[self.name_server]
             del servers_departure[self.name_server]
-            print("Server", self.name_server, "went offline")
+            # print("Server", self.name_server, "went offline")
+
 
 
 if __name__ == '__main__':
@@ -180,6 +182,7 @@ if __name__ == '__main__':
     random.seed(RANDOM_SEED)  # same sequence each time
 
     env = simpy.Environment()
+
     stats = Statistics()
     stats_dict = {}
     for i in arrival_nations.keys():
@@ -213,4 +216,12 @@ if __name__ == '__main__':
     dictionary_stats_nation = {}
     for i in arrival_nations.keys():
         dictionary_stats_nation[i] = stats_dict[i].mean()
-    print(nation_stats)
+
+    avg_cost = 0
+    for nation in supreme_dict.keys():
+        avg_cost += supreme_dict[nation]["tot_cost"]
+
+    print("avg cost: ", avg_cost / 5)
+    print("response for each nation: ", dictionary_stats_nation)
+    print("avg response: ", avg_response)
+    # print(nation_stats)

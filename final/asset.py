@@ -53,6 +53,8 @@ def evaluate_cost(last_update, time, server):
 
 
 def arrival_function(time, nation, arrival_rate):
+    # return an arrival rate based on day or night slot of time
+    # warm up time should be 12 hours
     nation_timezone = {"china": 8, "usa": -5, "india": 5, "brazil": -3, "japan": 9}
     hour_to_sec = 60 * 60
     if (time % 24 * hour_to_sec) < (8 + nation_timezone[nation]) * hour_to_sec or (
@@ -61,3 +63,4 @@ def arrival_function(time, nation, arrival_rate):
     else:
         arrival_rate2 = copy.deepcopy(arrival_rate * random.uniform(0.8, 1.2))
     return arrival_rate2
+

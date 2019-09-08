@@ -43,7 +43,7 @@ def global_service_times(server, dict, name_request, current_time, current_capac
     # THe new service time, equal to the current dimension of the packet over the current shared capacity
     dict[server]["current_requests"][name_request][0] = dict[server]["current_requests"][name_request][2] / \
                                                         dict[server]["current_requests"][name_request][1]
-    print("New service time for id", name_request, " : ", round(dict[server]["current_requests"][name_request][0], 10))
+    # print("New service time for id", name_request, " : ", round(dict[server]["current_requests"][name_request][0], 10))
     return dict
 
 
