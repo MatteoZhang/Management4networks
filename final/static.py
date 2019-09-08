@@ -14,11 +14,16 @@ SIM_TIME = 36 * 60 * 60  # 24 for each day sim time in seconds minumum warmup 12
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120  # internet users wikipedia
 arrival_rate_global = 1  # 1 = 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
-
+nation_timezone = {"china": 8, "usa": -5, "india": 5, "brazil": -3, "japan": 9}
 
 def arrival(environment, nation, arrival_rate):
     # arrival rate expressed in fraction * 100
     global client_id
+    global china
+    global china_time
+    china = []
+    china_time = []
+
     # keep track of client number client id
     # arrival will continue forever
     yield environment.timeout(12 * 60 * 60)
@@ -26,6 +31,10 @@ def arrival(environment, nation, arrival_rate):
         # arrival_rate2 differentiate day and night arrival
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
+
+        if nation == "china":
+            china.append(arrival_rate2)
+            china_time.append(env.now + nation_timezone["china"]*60*60)
 
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
@@ -76,7 +85,7 @@ class Client(object):
             # print("Server Chosen: ", string[i])
             # print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
             # print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
-            roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT in
+            roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
             # The client goes to the first server to be served ,now is changed
