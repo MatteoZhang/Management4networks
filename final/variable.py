@@ -63,6 +63,7 @@ class Client(object):
                 for q in supreme_dict.keys():
                     if which_nation(q) == i:
                         string.append(q)
+            # string are the sorted servers
             # print("sorted server : ",string)
             i = 0
             # Try to find free servers if the closest one is already full
@@ -156,7 +157,7 @@ class Servers(object):
         servers_departure[self.name_server] = self.env.event()
 
         del supreme_dict[self.name_server]["current_requests"][name_request]
-        if self.servers.count == 0 and self.name_server not in never_offline:
+        if supreme_dict[self.name_server]["count"] == 0 and self.name_server not in never_offline:
             now = self.env.now
             total_costs[which_nation(self.name_server)] += evaluate_cost(supreme_dict[self.name_server]["last_update"],
                                                                          now,
