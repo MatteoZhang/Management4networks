@@ -12,17 +12,26 @@ RANDOM_SEED = 1
 MAX_CLIENT = 20  # max client per server
 SIM_TIME = 24 * 60 * 60  # 24 for each day
 total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
-arrival_rate_global = 10  # 100%, and after will be used to define the rate of arrival of each country
+arrival_rate_global = 2  # 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
-
+nation_timezone = {"china": 8, "usa": -5, "india": 5, "brazil": -3, "japan": 9}
 
 def arrival(environment, nation, arrival_rate):
     global client_id
+    global china
+    global china_time
+    china = []
+    china_time = []
+
     # keep track of client number client id
     # arrival will continue forever
     while True:
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
+
+        if nation == "china":
+            china.append(arrival_rate2)
+            china_time.append(env.now + nation_timezone["china"]*60*60)
 
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
@@ -46,7 +55,7 @@ class Client(object):
     def run(self):
         # store the absolute arrival time
         time_arrival = self.env.now
-        print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
+        # print("client", self.client_id, "from ", self.nation, "wants to make requests at", round(time_arrival, 5))
         # print("client tot request: ", self.k)
 
         for j in range(1, self.k + 1):
@@ -63,9 +72,9 @@ class Client(object):
                     i = 0
                     break
             supreme_dict[string[i]]["count"] += 1
-            print("Server Chosen: ", string[i])
-            print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
-            print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
+            # print("Server Chosen: ", string[i])
+            # print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
+            # print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
             roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
@@ -180,3 +189,8 @@ if __name__ == '__main__':
     for i in supreme_dict.keys():
         dictionary_stats_nation[i] = stats_dict[i].mean()
     print(nation_stats)
+
+    plt.plot(china_time, china)
+    plt.grid()
+    plt.xlim([0, SIM_TIME])
+    plt.show()
