@@ -2,39 +2,30 @@ import simpy
 import numpy
 import random
 from runstats import Statistics
-from final.asset import *
+from lab2.asset_variable import *
 
 import matplotlib.pyplot as plt
 
-# initialization
-N_SERVERS = 5  # top-n n=5
+# init
 RANDOM_SEED = 1
-MAX_CLIENT = 20  # max client per server instead of MaxReq
-SIM_TIME = 36 * 60 * 60  # 24 for each day sim time in seconds minumum warmup 12 hours
-total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120  # internet users wikipedia
-arrival_rate_global = 1  # 1 = 100%, and after will be used to define the rate of arrival of each country
+MAX_CLIENT = 5  # max client per server
+max_capacity = 10e10  # The same for each server in 10 Gbps
+# se metto 10e4 mi da keyerror (da controllare)
+SIM_TIME = 36 * 60 * 60  # 24 for each day
+total_users = 765367947 + 451347554 + 244090854 + 141206801 + 115845120
+arrival_rate_global = 1  # 100%, and after will be used to define the rate of arrival of each country
 nation_stats = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0, "total": 0}
-nation_timezone = {"china": 8, "usa": -5, "india": 5, "brazil": -3, "japan": 9}
+never_offline = ["china1", "usa1", "india1", "brazil1", "japan1"]
+total_costs = {"china": 0, "usa": 0, "india": 0, "brazil": 0, "japan": 0}
+
 
 def arrival(environment, nation, arrival_rate):
-    # arrival rate expressed in fraction * 100
     global client_id
-    global china
-    global china_time
-    china = []
-    china_time = []
-
     # keep track of client number client id
     # arrival will continue forever
-    yield environment.timeout(12 * 60 * 60)
     while True:
-        # arrival_rate2 differentiate day and night arrival
         arrival_rate2 = arrival_function(env.now, nation, arrival_rate)
         inter_arrival = random.expovariate(lambd=arrival_rate2)
-
-        if nation == "china":
-            china.append(arrival_rate2)
-            china_time.append(env.now + nation_timezone["china"]*60*60)
 
         # yield an event to the simulator
         yield environment.timeout(inter_arrival)
@@ -51,7 +42,6 @@ class Client(object):
         self.env = environment
         self.nation = name_client
         self.client_id = client_id
-
         self.response_time = 0
         self.k = random.randint(10, 100)
         # the client is a "process"
@@ -64,44 +54,56 @@ class Client(object):
         # print("client tot request: ", self.k)
 
         for j in range(1, self.k + 1):
-            # expessed in bit
-            # average request
-            # https://stackoverflow.com/questions/5358109/what-is-the-average-size-of-an-http-request-response-header
-            # average webpage https://gigaom.com/2014/12/29/the-overweight-web-average-web-page-size-is-up-15-in-2014/
-            pack_dim = random.randint(200*8, 2000*8)
+            pack_dim = random.randint(200 * 8, 2000 * 8)
             # print("client", self.client_id, " request number : ", j)
-            string = nearest_servers(self.nation)  # A string with sorted servers according to the distances
-            # print(string)
+            close_nations = nearest_servers(self.nation)  # A list with sorted countries according to the distances
+            string = []  # A list with sorted servers according to the country in which they are.
+            for i in close_nations:
+                for q in supreme_dict.keys():
+                    if which_nation(q) == i:
+                        string.append(q)
+            # string are the sorted servers
+            # print("sorted server : ",string)
             i = 0
             # Try to find free servers if the closest one is already full
             while supreme_dict[string[i]]["count"] >= MAX_CLIENT:
                 i += 1
-                # If all the servers have been checked, then come back to the
-                # closest one and put the client in the queue
-                if i == N_SERVERS:
+                # If all the servers have been checked, then come back to the closest one and put the client in the queue
+                if i == len(supreme_dict.keys()) - 1:
                     i = 0
                     break
             supreme_dict[string[i]]["count"] += 1
             # print("Server Chosen: ", string[i])
             # print("Total Clients in the queue:", string[i], " : ", len(dictionary_of_server[string[i]].servers.queue))
             # print("Total clients in server " + string[i] + " : " + str(dictionary_of_server[string[i]].servers.count))
-            roundtrip = RTT(string[i], self.nation) / (3 * 10e5)  # Latency due to RTT
+            # If a server is going to become full, then create a new server in the same country.
+            if supreme_dict[string[i]]["count"] == MAX_CLIENT - 1:
+                new_server = which_nation(string[i]) + str(int(which_id(string[i])) + 1)
+                if new_server not in supreme_dict.keys():
+                    supreme_dict[new_server] = {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}}
+                    env.server = Servers(environment=env, max_client=MAX_CLIENT, capacity=max_capacity, name=new_server)
+                    servers_arrival[new_server] = env.event()
+                    servers_departure[new_server] = env.event()
+                    dictionary_of_server[new_server] = env.server
+                    # print("A new server has been created!", new_server)
+            # The request has a RTT to wait before arriving at the server
+            roundtrip = RTT(which_nation(string[i]), self.nation) / (3 * 10e5)  # Latency due to RTT
             # print("RTT to reach the server: ", round(roundtrip, 5))
             yield self.env.timeout(roundtrip)
-            # The client goes to the first server to be served ,now is changed
-            # until env.process is complete
-            serve_customer = env.process(
-                dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
+            # Wait until the request is served by the process serve_customer
+            serve_customer = env.process(dictionary_of_server[string[i]].serve(j, self.client_id, pack_dim))
             yield serve_customer
-            supreme_dict[string[i]]["count"] -= 1
+            if string[i] in supreme_dict.keys():
+                supreme_dict[string[i]]["count"] -= 1
             yield self.env.timeout(roundtrip)
 
         self.response_time = self.env.now - time_arrival
         nation_stats[self.nation] += 1
         nation_stats["total"] += 1
         # print("client", self.client_id, "from ", self.nation, "response time ", self.response_time)
-        stats.push(self.response_time)
-        stats_dict[self.nation].push(self.response_time)
+        if env.now > 12 * 60 * 60:
+            stats.push(self.response_time)
+            stats_dict[self.nation].push(self.response_time)
 
 
 class Servers(object):
@@ -118,9 +120,10 @@ class Servers(object):
         # request a server
         with self.servers.request() as request:
             yield request  # create obj then destroy
-            latency = random.randint(1, 10) * 10e-3  # Latency of the server seconds
+            latency = random.randint(1, 10) * 10e-3  # Latency of the server
             servers_arrival[self.name_server].succeed()
             servers_arrival[self.name_server] = self.env.event()
+
             name_request = "client_" + str(client) + "_req_" + str(req)
             now = self.env.now
             shared_capacity = self.capacity / self.servers.count
@@ -134,17 +137,19 @@ class Servers(object):
                 now = self.env.now
                 new_supreme_dict = global_service_times(self.name_server, supreme_dict, name_request, now,
                                                         self.capacity / self.servers.count)
+
                 supreme_dict[self.name_server]["current_requests"][name_request] = \
                     new_supreme_dict[self.name_server]["current_requests"][name_request]
                 service_time = supreme_dict[self.name_server]["current_requests"][name_request][0]
+
                 b = servers_arrival[self.name_server]
                 c = servers_departure[self.name_server]
                 r = yield self.env.timeout(service_time) | b | c
                 if b not in r and c not in r:
                     go = True
                 else:
-                    print("A new client arrived or just went away from server ", self.name_server,
-                          "update needed for: ", name_request)
+                    pass
+                    # print("A new client arrived or just went away from server ", self.name_server,"update needed for: ", name_request)
             yield self.env.timeout(latency)
             # print("The client left the server in ", round(self.env.now - now, 10))
 
@@ -152,27 +157,37 @@ class Servers(object):
         servers_departure[self.name_server] = self.env.event()
 
         del supreme_dict[self.name_server]["current_requests"][name_request]
+        if supreme_dict[self.name_server]["count"] == 0 and self.name_server not in never_offline:
+            now = self.env.now
+            total_costs[which_nation(self.name_server)] += evaluate_cost(supreme_dict[self.name_server]["last_update"],
+                                                                         now,
+                                                                         which_nation(self.name_server))
+            del supreme_dict[self.name_server]
+            del dictionary_of_server[self.name_server]
+            del servers_arrival[self.name_server]
+            del servers_departure[self.name_server]
+            # print("Server", self.name_server, "went offline")
 
 
 if __name__ == '__main__':
-    supreme_dict = {"china": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}},
-                    "usa": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}},
-                    "india": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}},
-                    "japan": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}},
-                    "brazil": {"tot_cost": 0, "last_update": 0, "online": True, "count": 0, "current_requests": {}}}
+    supreme_dict = {"china1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
+                    "usa1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
+                    "india1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
+                    "japan1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}},
+                    "brazil1": {"tot_cost": 0, "last_update": 0, "count": 0, "current_requests": {}}}
     arrival_nations = {"china": round(765367947 / total_users, 2), "usa": round(451347554 / total_users, 2),
                        "india": round(244090854 / total_users, 2),
                        "brazil": round(141206801 / total_users, 2), "japan": round(115845120 / total_users, 2)}
     client_id = 1
     random.seed(RANDOM_SEED)  # same sequence each time
 
-    max_capacity = 10e10  # The same for each server in 10 Gbps = 1,250,000 KBps
-
     env = simpy.Environment()
+
     stats = Statistics()
     stats_dict = {}
-    for i in supreme_dict.keys():
+    for i in arrival_nations.keys():
         stats_dict[i] = Statistics()
+
     # servers
     dictionary_of_server = {}
     for i in supreme_dict.keys():
@@ -188,23 +203,22 @@ if __name__ == '__main__':
     # start the arrival process
     # technically, a process actually is an event. Example: process of parking a car.
     # https://simpy.readthedocs.io/en/latest/simpy_intro/process_interaction.html?highlight=process
-    for i in supreme_dict.keys():
+    for i in arrival_nations.keys():
         env.process(arrival(environment=env, nation=i, arrival_rate=arrival_rate_global * arrival_nations[i]))
     # simulate until SIM_TIME
+
     env.run(until=SIM_TIME)  # the run process starts waiting for it to finish
-    for i in supreme_dict.keys():
-        supreme_dict[i]["tot_cost"] += evaluate_cost(supreme_dict[i]["last_update"], SIM_TIME, i)
+
+    if env.now > 12 * 60 * 60:
+        for i in supreme_dict.keys():
+            total_costs[which_nation(i)] += evaluate_cost(supreme_dict[i]["last_update"], SIM_TIME, which_nation(i))
 
     avg_response = stats.mean()
     dictionary_stats_nation = {}
-    for i in supreme_dict.keys():
+    for i in arrival_nations.keys():
         dictionary_stats_nation[i] = stats_dict[i].mean()
 
-    avg_cost = 0
-    for nation in supreme_dict.keys():
-        avg_cost += supreme_dict[nation]["tot_cost"]
-
-    print("avg cost: ", avg_cost/5)
+    print("avg cost: ", sum(total_costs.values()) / 5)
     print("response for each nation: ", dictionary_stats_nation)
     print("avg response: ", avg_response)
     # print(nation_stats)

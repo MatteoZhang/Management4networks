@@ -34,8 +34,8 @@ def global_service_times(server, dict, name_request, current_time, current_capac
     # The new packet dimension, equal to the previous dimension minus the amount of bits downloaded in the meantime
     dict[server]["current_requests"][name_request][2] = dict[server]["current_requests"][name_request][2] - \
                                                         dict[server]["current_requests"][name_request][1] * (
-                                                                    current_time -
-                                                                    dict[server]["current_requests"][name_request][3])
+                                                                current_time -
+                                                                dict[server]["current_requests"][name_request][3])
     # The new current time, referred to the last update of shared capacity
     dict[server]["current_requests"][name_request][3] = current_time
     # The new shared capacity for the packet
@@ -48,8 +48,9 @@ def global_service_times(server, dict, name_request, current_time, current_capac
 
 
 def evaluate_cost(last_update, time, server):
-    costs = {"china": 0.104 / 60, "usa": 0.0976 / 60, "india": 0.0896 / 60, "japan": 0.1088 / 60, "brazil": 0.1344 / 60}
-    return (time - last_update) * costs[server]
+        costs = {"china": 0.104 / 60, "usa": 0.0976 / 60, "india": 0.0896 / 60, "japan": 0.1088 / 60,
+                 "brazil": 0.1344 / 60}
+        return (time - last_update) * costs[server]
 
 
 def arrival_function(time, nation, arrival_rate):
@@ -63,4 +64,3 @@ def arrival_function(time, nation, arrival_rate):
     else:
         arrival_rate2 = copy.deepcopy(arrival_rate * random.uniform(0.8, 1.2))
     return arrival_rate2
-

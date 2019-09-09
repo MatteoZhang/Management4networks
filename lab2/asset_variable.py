@@ -34,8 +34,8 @@ def global_service_times(server, dict, name_request, current_time, current_capac
     # The new packet dimension, equal to the previous dimension minus the amount of bits downloaded in the meantime
     dict[server]["current_requests"][name_request][2] = dict[server]["current_requests"][name_request][2] - \
                                                         dict[server]["current_requests"][name_request][1] * (
-                                                                    current_time -
-                                                                    dict[server]["current_requests"][name_request][3])
+                                                                current_time -
+                                                                dict[server]["current_requests"][name_request][3])
     # The new current time, referred to the last update of shared capacity
     dict[server]["current_requests"][name_request][3] = current_time
     # The new shared capacity for the packet
